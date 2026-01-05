@@ -1,5 +1,5 @@
 import {LogParserOptions, ParseResultSet, PM2LogEntry} from "./types.js";
-import {getLogFiles, readLogFile, writeTSV} from "./file-handlers.js";
+import {getLogFiles, readLogFile, writeJSON, writeTSV} from "./file-handlers.js";
 import Debug from "debug";
 import {match} from "path-to-regexp";
 import {parseEOL} from "./utils.js";
@@ -35,7 +35,10 @@ export async function parseLog(filename: string, options?: LogParserOptions): Pr
     lines.forEach(line => {
         const parsed = parsePM2Log(line);
         if (parsed) {
-            const [url, query] = parsed.url.split('?');
+            let [url, query] = parsed.url.split('?');
+            if (options?.path && pathTest(url)) {
+                url = options.path;
+            }
             if (!pathTest(url)) {
                 return;
             }
@@ -102,6 +105,10 @@ export async function logCalledEndpoints(parseOptions: LogParserOptions) {
         }
     }
     if (parseOptions.combined) {
+        if (parseOptions.output === 'json') {
+            await writeJSON(parseOptions.outfile || 'combined.json', combined, parseOptions);
+            return;
+        }
         await writeTSV(parseOptions.outfile || 'combined.tsv', combined, parseOptions);
     }
     if (parseOptions.verbose) debug("main()", "done");

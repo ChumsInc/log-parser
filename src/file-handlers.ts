@@ -54,8 +54,8 @@ export async function writeTSV(file: string, data:ParseResultSet, options?:LogPa
             return [
                 path,
                 count,
-                users?.join(','),
-                referrers?.join(','),
+                JSON.stringify(users),
+                JSON.stringify(referrers),
             ].join('\t');
         })
         if (options?.verbose) debug("writeTSV()", `writing: ${contents.length}`);
@@ -68,5 +68,24 @@ export async function writeTSV(file: string, data:ParseResultSet, options?:LogPa
         }
         debug("writeTSV()", err);
         return Promise.reject(new Error('Error in writeTSV()'));
+    }
+}
+
+export async function writeJSON(file: string, data:ParseResultSet, options?:LogParserOptions):Promise<void> {
+    try {
+        const suffix = options?.deprecated ? '-deprecated' : '-stats';
+        const filename = path.basename(file, '.log') + `${suffix}.json`;
+        if (options?.verbose) debug("writeJSON()", `init: ${filename}`);
+        const contents = JSON.stringify(data, undefined, 2);
+        if (options?.verbose) debug("writeJSON()", `writing: ${contents.length}`);
+        await writeFile(path.join(process.cwd(), './out', filename), contents);
+        if (options?.verbose) debug("writeJSON()", `wrote: ${contents.length}`);
+    } catch(err:unknown) {
+        if (err instanceof Error) {
+            debug("writeJSON()", err.message);
+            return Promise.reject(err);
+        }
+        debug("writeJSON()", err);
+        return Promise.reject(new Error('Error in writeJSON()'));
     }
 }
